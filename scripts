@@ -1,4 +1,4 @@
-PowerShell Bulk Users Scripts on Existing OUs and Groups
+-----------PowerShell Bulk Users Scripts on Existing OUs and Groups-----------
 
 Import-Module ActiveDirectory
 
@@ -60,14 +60,14 @@ foreach ($user in $users) {
 }
 
 
-Removes Protected OU/ Self-Built Containers from Deletion:
+-----------Removes Protected OU/ Self-Built Containers from Deletion-----------
 
 Set-ADOrganizationalUnit `
 -Identity "OU=NameOfOU,DC=Fabrikam,DC=com" `
 -ProtectedFromAccidentalDeletion $false
 
 
-Completely Removes Specific OU:
+-----------Completely Removes Specific OU-----------
 
 Remove-ADOrganizationalUnit `
 -Identity "OU=NameOfOU,DC=Fabrikam,DC=com" `
