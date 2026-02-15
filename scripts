@@ -1,0 +1,75 @@
+PowerShell Bulk Users Scripts on Existing OUs and Groups
+
+Import-Module ActiveDirectory
+
+# Detect domain info automatically
+$domain = Get-ADDomain
+$dnsRoot = $domain.DNSRoot
+$baseDN = $domain.DistinguishedName
+
+# Set default password
+$password = ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force
+
+# Import CSV
+$users = Import-Csv "C:\BulkUsers\bulk.csv"
+
+foreach ($user in $users) {
+
+    $username = ($user.FirstName + "." + $user.LastName).ToLower()
+    $ouPath = "OU=$($user.Department),$baseDN"
+    $groupName = "$($user.Department)_Group"
+
+    # Create OU if it doesn't exist
+    if (-not (Get-ADOrganizationalUnit -Filter "Name -eq '$($user.Department)'" -ErrorAction SilentlyContinue)) {
+        New-ADOrganizationalUnit -Name $user.Department -Path $baseDN
+        Write-Host "Created OU: $($user.Department)" -ForegroundColor Cyan
+    }
+
+    # Create Group if it doesn't exist
+    if (-not (Get-ADGroup -Filter "Name -eq '$groupName'" -ErrorAction SilentlyContinue)) {
+        New-ADGroup `
+            -Name $groupName `
+            -GroupScope Global `
+            -GroupCategory Security `
+            -Path $ouPath
+        Write-Host "Created Group: $groupName" -ForegroundColor Cyan
+    }
+
+    # Create user if not exists
+    if (-not (Get-ADUser -Filter "SamAccountName -eq '$username'" -ErrorAction SilentlyContinue)) {
+
+        New-ADUser `
+            -Name "$($user.FirstName) $($user.LastName)" `
+            -GivenName $user.FirstName `
+            -Surname $user.LastName `
+            -SamAccountName $username `
+            -UserPrincipalName "$username@$dnsRoot" `
+            -Department $user.Department `
+            -AccountPassword $password `
+            -Enabled $true `
+            -ChangePasswordAtLogon $true `
+            -Path $ouPath
+
+        Add-ADGroupMember -Identity $groupName -Members $username
+
+        Write-Host "Created User: $username" -ForegroundColor Green
+    }
+    else {
+        Write-Host "User already exists: $username" -ForegroundColor Yellow
+    }
+}
+
+
+Removes Protected OU/ Self-Built Containers from Deletion:
+
+Set-ADOrganizationalUnit `
+-Identity "OU=NameOfOU,DC=Fabrikam,DC=com" `
+-ProtectedFromAccidentalDeletion $false
+
+
+Completely Removes Specific OU:
+
+Remove-ADOrganizationalUnit `
+-Identity "OU=NameOfOU,DC=Fabrikam,DC=com" `
+-Recursive `
+-Confirm:$false
